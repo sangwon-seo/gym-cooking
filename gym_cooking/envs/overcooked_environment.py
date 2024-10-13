@@ -64,7 +64,6 @@ class OvercookedEnvironment(gym.Env):
         new_env.__dict__ = self.__dict__.copy()
         new_env.world = copy.copy(self.world)
         new_env.sim_agents = [copy.copy(a) for a in self.sim_agents]
-        new_env.distances = self.distances
 
         # Make sure new objects and new agents' holdings have the right pointers.
         for a in new_env.sim_agents:
@@ -137,7 +136,6 @@ class OvercookedEnvironment(gym.Env):
                                 location=(int(loc[0]), int(loc[1])))
                         self.sim_agents.append(sim_agent)
 
-        self.distances = {}
         self.world.width = x+1
         self.world.height = y
         self.world.perimeter = 2*(self.world.width + self.world.height)
@@ -165,7 +163,6 @@ class OvercookedEnvironment(gym.Env):
         self.all_subtasks = self.run_recipes()
         self.world.make_loc_to_gridsquare()
         self.world.make_reachability_graph()
-        self.cache_distances()
         self.obs_tm1 = copy.copy(self)
 
         if self.arglist.record or self.arglist.with_image_obs:
@@ -209,13 +206,13 @@ class OvercookedEnvironment(gym.Env):
 
         # Get a plan-representation observation.
         new_obs = copy.copy(self)
-        # Get an image observation
-        image_obs = self.game.get_image_obs()
+        # # Get an image observation
+        # image_obs = self.game.get_image_obs()
 
         done = self.done()
         reward = self.reward()
         info = {"t": self.t, "obs": new_obs,
-                "image_obs": image_obs,
+                # "image_obs": image_obs,
                 "done": done, "termination_info": self.termination_info}
         return new_obs, reward, done, info
 
@@ -437,39 +434,4 @@ class OvercookedEnvironment(gym.Env):
             self.agent_actions[agent.name] = agent.action
 
 
-    def cache_distances(self):
-        """Saving distances between world objects."""
-        counter_grid_names = [name for name in self.world.objects if "Supply" in name or "Counter" in name or "Delivery" in name or "Cut" in name]
-        # Getting all source objects.
-        source_objs = copy.copy(self.world.objects["Floor"])
-        for name in counter_grid_names:
-            source_objs += copy.copy(self.world.objects[name])
-        # Getting all destination objects.
-        dest_objs = source_objs
-
-        # From every source (Counter and Floor objects),
-        # calculate distance to other nodes.
-        for source in source_objs:
-            self.distances[source.location] = {}
-            # Source to source distance is 0.
-            self.distances[source.location][source.location] = 0
-            for destination in dest_objs:
-                # Possible edges to approach source and destination.
-                source_edges = [(0, 0)] if not source.collidable else World.NAV_ACTIONS
-                destination_edges = [(0, 0)] if not destination.collidable else World.NAV_ACTIONS
-                # Maintain shortest distance.
-                shortest_dist = np.inf
-                for source_edge, dest_edge in product(source_edges, destination_edges):
-                    try:
-                        dist = nx.shortest_path_length(self.world.reachability_graph, (source.location,source_edge), (destination.location, dest_edge))
-                        # Update shortest distance.
-                        if dist < shortest_dist:
-                            shortest_dist = dist
-                    except:
-                        continue
-                # Cache distance floor -> counter.
-                self.distances[source.location][destination.location] = shortest_dist
-
-        # Save all distances under world as well.
-        self.world.distances = self.distances
 
