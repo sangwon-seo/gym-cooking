@@ -1,3 +1,4 @@
+import os
 # Recipe planning
 from recipe_planner.stripsworld import STRIPSWorld
 import recipe_planner.utils as recipe
@@ -91,7 +92,9 @@ class OvercookedEnvironment(gym.Env):
     def load_level(self, level, num_agents):
         x = 0
         y = 0
-        with open('utils/levels/{}.txt'.format(level), 'r') as file:
+        parent_dir = os.path.dirname(os.path.dirname(__file__))
+
+        with open(os.path.join(parent_dir, 'utils/levels/{}.txt'.format(level)), 'r') as file:
             # Mark the phases of reading.
             phase = 1
             for line in file:

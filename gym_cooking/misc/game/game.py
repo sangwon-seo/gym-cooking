@@ -11,8 +11,11 @@ def get_image(path):
     global _image_library
     image = _image_library.get(path)
     if image == None:
+        package_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         canonicalized_path = path.replace('/', os.sep).replace('\\', os.sep)
-        image = pygame.image.load(canonicalized_path)
+        file_path = os.path.join(package_dir, canonicalized_path)
+        print(file_path)
+        image = pygame.image.load(file_path)
         _image_library[path] = image
     return image
 
@@ -112,9 +115,9 @@ class Game:
         # Holding shows up in bottom right corner.
         if obj is None: return
         if any([isinstance(c, Plate) for c in obj.contents]): 
-            self.draw('Plate', self.holding_size, self.holding_location(obj.location))
+            self.draw('plate', self.holding_size, self.holding_location(obj.location))
             if len(obj.contents) > 1:
-                plate = obj.unmerge('Plate')
+                plate = obj.unmerge('plate')
                 self.draw(obj.full_name, self.holding_container_size, self.holding_container_location(obj.location))
                 obj.merge(plate)
         else:
@@ -123,9 +126,9 @@ class Game:
     def draw_object(self, obj):
         if obj is None: return
         if any([isinstance(c, Plate) for c in obj.contents]): 
-            self.draw('Plate', self.tile_size, self.scaled_location(obj.location))
+            self.draw('plate', self.tile_size, self.scaled_location(obj.location))
             if len(obj.contents) > 1:
-                plate = obj.unmerge('Plate')
+                plate = obj.unmerge('plate')
                 self.draw(obj.full_name, self.container_size, self.container_location(obj.location))
                 obj.merge(plate)
         else:

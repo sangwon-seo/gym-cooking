@@ -93,7 +93,7 @@ class RealAgent:
         self.update_subtasks(env=obs)
         self.new_subtask, self.new_subtask_agent_names = self.delegator.select_subtask(
                 agent_name=self.name)
-        self.plan(copy.copy(obs))
+        self.plan(copy.copy(obs))  # Sangwon: where action selected
         return self.action
 
     def get_subtasks(self, world):

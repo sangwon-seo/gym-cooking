@@ -1,3 +1,4 @@
+import os
 # from environment import OvercookedEnvironment
 # from gym_cooking.envs import OvercookedEnvironment
 from recipe_planner.recipe import *
@@ -56,8 +57,8 @@ def fix_seed(seed):
 
 def initialize_agents(arglist):
     real_agents = []
-
-    with open('utils/levels/{}.txt'.format(arglist.level), 'r') as f:
+    cur_dir = os.path.dirname(__file__)
+    with open(os.path.join(cur_dir, 'utils/levels/{}.txt'.format(arglist.level)), 'r') as f:
         phase = 1
         recipes = []
         for line in f:
@@ -101,7 +102,7 @@ def main_loop(arglist):
             action = agent.select_action(obs=obs)
             action_dict[agent.name] = action
 
-        obs, reward, done, info = env.step(action_dict=action_dict)
+        obs, reward, done, info = env.step(action_dict)
 
         # Agents
         for agent in real_agents:
