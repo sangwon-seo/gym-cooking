@@ -1,8 +1,8 @@
 import os
 import pygame
 import numpy as np
-from utils.core import *
-from misc.game.utils import *
+from gym_cooking.utils.core import *
+from gym_cooking.misc.game.utils import *
 
 graphics_dir = 'misc/game/graphics'
 _image_library = {}
@@ -115,9 +115,9 @@ class Game:
         # Holding shows up in bottom right corner.
         if obj is None: return
         if any([isinstance(c, Plate) for c in obj.contents]): 
-            self.draw('plate', self.holding_size, self.holding_location(obj.location))
+            self.draw('Plate', self.holding_size, self.holding_location(obj.location))
             if len(obj.contents) > 1:
-                plate = obj.unmerge('plate')
+                plate = obj.unmerge('Plate')
                 self.draw(obj.full_name, self.holding_container_size, self.holding_container_location(obj.location))
                 obj.merge(plate)
         else:
@@ -126,9 +126,9 @@ class Game:
     def draw_object(self, obj):
         if obj is None: return
         if any([isinstance(c, Plate) for c in obj.contents]): 
-            self.draw('plate', self.tile_size, self.scaled_location(obj.location))
+            self.draw('Plate', self.tile_size, self.scaled_location(obj.location))
             if len(obj.contents) > 1:
-                plate = obj.unmerge('plate')
+                plate = obj.unmerge('Plate')
                 self.draw(obj.full_name, self.container_size, self.container_location(obj.location))
                 obj.merge(plate)
         else:

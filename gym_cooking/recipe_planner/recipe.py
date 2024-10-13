@@ -1,5 +1,5 @@
-from utils.core import *
-import recipe_planner.utils as recipe
+from gym_cooking.utils.core import *
+import gym_cooking.recipe_planner.utils as recipe
 
 
 class Recipe:

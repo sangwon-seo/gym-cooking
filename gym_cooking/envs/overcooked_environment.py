@@ -1,22 +1,23 @@
 import os
 # Recipe planning
-from recipe_planner.stripsworld import STRIPSWorld
-import recipe_planner.utils as recipe
-from recipe_planner.recipe import *
+from gym_cooking.recipe_planner.stripsworld import STRIPSWorld
+import gym_cooking.recipe_planner.utils as recipe
+from gym_cooking.recipe_planner.recipe import *
+from types import SimpleNamespace
 
 # Delegation planning
-from delegation_planner.bayesian_delegator import BayesianDelegator
+from gym_cooking.delegation_planner.bayesian_delegator import BayesianDelegator
 
 # Navigation planning
-import navigation_planner.utils as nav_utils
+import gym_cooking.navigation_planner.utils as nav_utils
 
 # Other core modules
-from utils.interact import interact
-from utils.world import World
-from utils.core import *
-from utils.agent import SimAgent
-from misc.game.gameimage import GameImage
-from utils.agent import COLORS
+from gym_cooking.utils.interact import interact
+from gym_cooking.utils.world import World
+from gym_cooking.utils.core import *
+from gym_cooking.utils.agent import SimAgent
+from gym_cooking.misc.game.gameimage import GameImage
+from gym_cooking.utils.agent import COLORS
 
 import copy
 import networkx as nx
@@ -432,6 +433,81 @@ class OvercookedEnvironment(gym.Env):
         for agent in self.sim_agents:
             interact(agent=agent, world=self.world)
             self.agent_actions[agent.name] = agent.action
+
+
+def get_arglist():
+    arglist = SimpleNamespace()
+
+    # environment
+    arglist.level = "full-divider_salad"
+    arglist.num_agents = 2
+    arglist.max_num_timesteps = 100
+    arglist.max_num_subtasks = 14
+    arglist.seed = 1
+    arglist.with_image_obs = False
+
+    # delegation planner
+    arglist.beta = 1.3
+
+    # navigation planner
+    arglist.alpha = 0.01
+    arglist.tau = 2
+    arglist.cap = 75
+    arglist.main_cap = 100
+
+    # visualizations
+    arglist.play = False
+    arglist.record = False
+
+    # models  (bd = Bayes Delegation; up = Uniform Priors; dc = Divide & Conquer; fb = Fixed Beliefs; greedy = Greedy)
+    arglist.model1 = 'bd'
+    arglist.model2 = 'bd'
+    arglist.model3 = None
+    arglist.model4 = None
+
+    return arglist
+
+
+
+if __name__ == "__main__":
+
+    arglist = get_arglist()
+
+    env = OvercookedEnvironment(arglist)
+
+    obs = env.reset()
+    agent_names = env.get_agent_names()
+
+    while not env.done():
+        action1 = (0, 0)
+        action2 = (0, 0)
+        
+        while True:
+            key = input("action?")
+            if key == "w":
+                action1 = (0, -1)
+            elif key == "a":
+                action1 = (-1, 0)
+            elif key == "s":
+                action1 = (0, 1)
+            elif key == "d":
+                action1 = (1, 0)
+            elif key == "i":
+                action2 = (0, -1)
+            elif key == "j":
+                action2 = (-1, 0)
+            elif key == "k":
+                action2 = (0, 1)
+            elif key == "l":
+                action2 = (1, 0)
+            else:
+                continue
+            break
+        
+        action_dict = {agent_names[0]: action1, agent_names[1]: action2}
+        obs, reward, done, info = env.step(action_dict)
+        
+
 
 
 
