@@ -181,7 +181,8 @@ def get_world_info(obs):
     return dict_info
 
 
-def assign_subtasks(all_subtasks, obs, list_agent_subtasks):
+def assign_subtasks(obs, list_agent_subtasks):
+    all_subtasks = obs.all_subtasks
     dict_info = get_world_info(obs)
     item_fullnames = dict_info["item_fullnames"]
     item_2_hold_agents = dict_info["item_2_hold_agents"]
@@ -594,7 +595,7 @@ def main_loop(arglist):
         action_dict = {}
 
         oop_obs = info["env_new"]
-        list_agent_subtasks = assign_subtasks(env.all_subtasks, oop_obs, list_agent_subtasks)
+        list_agent_subtasks = assign_subtasks( oop_obs, list_agent_subtasks)
 
         # for agent in real_agents:
             # action = agent.select_action(obs=info["env_new"])
@@ -635,7 +636,7 @@ if __name__ == '__main__':
         model_types = [arglist.model1, arglist.model2, arglist.model3, arglist.model4]
         assert len(list(filter(lambda x: x is not None,
             model_types))) == arglist.num_agents, "num_agents should match the number of models specified"
-        fix_seed(seed=arglist.seed)
+        # fix_seed(seed=arglist.seed)
         main_loop(arglist=arglist)
 
 

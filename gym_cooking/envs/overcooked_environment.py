@@ -39,7 +39,8 @@ class OvercookedEnvironment(gym.Env):
     def __init__(self, arglist):
         self.arglist = arglist
         self.t = 0
-        self.set_filename()
+        self.filename = ''
+        # self.set_filename()
 
         # For visualizing episode.
         self.rep = []
@@ -75,19 +76,7 @@ class OvercookedEnvironment(gym.Env):
                         find_held_objects=True)
         return new_env
 
-    def set_filename(self):
-        self.filename = "{}_agents{}_seed{}".format(self.arglist.level,\
-            self.arglist.num_agents, self.arglist.seed)
-        model = ""
-        if self.arglist.model1 is not None:
-            model += "_model1-{}".format(self.arglist.model1)
-        if self.arglist.model2 is not None:
-            model += "_model2-{}".format(self.arglist.model2)
-        if self.arglist.model3 is not None:
-            model += "_model3-{}".format(self.arglist.model3)
-        if self.arglist.model4 is not None:
-            model += "_model4-{}".format(self.arglist.model4)
-        self.filename += model
+
 
     def load_level(self, level, num_agents):
         x = 0
@@ -294,7 +283,9 @@ class OvercookedEnvironment(gym.Env):
 
         assert any([isinstance(subtask, recipe.Deliver) for subtask in self.all_subtasks]), "no delivery subtask"
 
+
         # Done if subtask is completed.
+        all_delivered = True
         for subtask in self.all_subtasks:
             # Double check all goal_objs are at Delivery.
             if isinstance(subtask, recipe.Deliver):
@@ -304,12 +295,29 @@ class OvercookedEnvironment(gym.Env):
                 goal_obj_locs = self.world.get_all_object_locs(obj=goal_obj)
                 if not any([gol == delivery_loc for gol in goal_obj_locs]):
                     self.termination_info = ""
-                    self.successful = False
-                    return False
+                    all_delivered = False
+                    break
 
-        self.termination_info = "Terminating because all deliveries were completed"
-        self.successful = True
-        return True
+        self.successful = all_delivered
+
+        if all_delivered:
+            self.termination_info = "Terminating because all deliveries were completed"
+            return True
+        else:
+            item_fullnames = []
+            for agent in self.sim_agents:
+                if agent.holding is not None:
+                    item_fullnames.append(agent.holding.full_name)
+            for obj in self.world.get_object_list():
+                if obj.name not in ["Counter", "Cutboard"] or obj.holding is None:
+                    continue
+                item_fullnames.append(obj.holding.full_name)
+
+            if len(item_fullnames) == 0:  # still done if there's nothing to do
+                self.termination_info = "Terminating because there's no valid subtask left"
+                return True
+            else:
+                return False
 
     def reward(self):
         return 1 if self.successful else 0
@@ -320,7 +328,7 @@ class OvercookedEnvironment(gym.Env):
 
     def display(self):
         self.update_display()
-        print(str(self))
+        # print(str(self))
 
     def update_display(self):
         self.rep = self.world.update_display()
@@ -338,7 +346,7 @@ class OvercookedEnvironment(gym.Env):
         # [path for recipe 1, path for recipe 2, ...] where each path is a list of actions
         subtasks = sw.get_subtasks(max_path_length=self.arglist.max_num_subtasks)
         all_subtasks = [subtask for path in subtasks for subtask in path]
-        print('Subtasks:', all_subtasks, '\n')
+        # print('Subtasks:', all_subtasks, '\n')
         return all_subtasks
 
     def get_AB_locs_given_objs(self, subtask, subtask_agent_names, start_obj, goal_obj, subtask_action_obj):

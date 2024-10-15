@@ -26,7 +26,7 @@ def interact(agent, world):
             if obj.is_deliverable():
                 gs.acquire(obj)
                 agent.release()
-                print('\nDelivered {}!'.format(obj.full_name))
+                # print('\nDelivered {}!'.format(obj.full_name))
 
         # if occupied gridsquare in front --> try merging
         elif world.is_occupied(gs.location):
