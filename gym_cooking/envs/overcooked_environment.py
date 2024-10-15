@@ -141,6 +141,62 @@ class OvercookedEnvironment(gym.Env):
         self.world.height = y
         self.world.perimeter = 2*(self.world.width + self.world.height)
 
+    def get_current_obs(self):
+        # sangwon
+        # a1_holding = ((c)t, (c)l, p)  : 5
+        # a2_holding = ((c)t, (c)l, p)  : 5
+        # width x height array of (a1, a2, (c)t, (c)l, p) : for 7 by 7, 7^2 * 7 = 343
+        # total: 353
+
+        def encode_holding_obj(obj_held):
+            holding_state = [0, 0, 0, 0, 0]
+            if obj_held is not None:
+                holding_name = obj_held.full_name
+                if holding_name == 'FreshTomato':
+                    holding_state[0] = 1
+                elif holding_name == 'ChoppedTomato':
+                    holding_state[0:2] = 1, 1
+                elif holding_name == 'FreshLettuce':
+                    holding_state[2] = 1
+                elif holding_name == 'ChoppedLettuce':
+                    holding_state[2:4] = 1, 1
+                elif holding_name == 'Plate':
+                    holding_state[4] = 1
+                elif holding_name == 'ChoppedLettuce-ChoppedTomato':
+                    holding_state = [1, 1, 1, 1, 0]
+                elif holding_name == 'Plate-ChoppedTomato':
+                    holding_state = [1, 1, 0, 0, 1]
+                elif holding_name == 'ChoppedLettuce-Plate':
+                    holding_state = [0, 0, 1, 1, 1]
+                elif holding_name == 'ChoppedLettuce-Plate-ChoppedTomato':
+                    holding_state = [1, 1, 1, 1, 1]
+                else:
+                    raise ValueError("Invalid holding object")
+            return holding_state
+
+
+        np_map = np.zeros((self.world.width, self.world.height, 7))
+
+        agent_holdings = []
+        for i_a, agent in enumerate(self.sim_agents):
+            x, y = agent.location
+            np_map[x, y][i_a] = 1
+            coded_holding_obj = encode_holding_obj(agent.holding)
+            agent_holdings.append(coded_holding_obj)
+
+        num_agents = len(self.sim_agents) 
+
+        # only get counter objects
+        for obj in self.world.get_object_list():
+            if obj.name not in ["Counter", "Cutboard"] or obj.holding is None:
+                continue
+            x, y = obj.location
+            coded_counter_obj = encode_holding_obj(obj.holding)
+            np_map[x, y][num_agents:] = coded_counter_obj
+        
+        vectors = [np_map.reshape(-1)] + agent_holdings
+        return np.concatenate(vectors, axis=0)
+        
 
     def reset(self):
         self.world = World(arglist=self.arglist)
@@ -166,17 +222,24 @@ class OvercookedEnvironment(gym.Env):
         self.world.make_reachability_graph()
         self.obs_tm1 = copy.copy(self)
 
-        if self.arglist.record or self.arglist.with_image_obs:
-            self.game = GameImage(
-                    filename=self.filename,
-                    world=self.world,
-                    sim_agents=self.sim_agents,
-                    record=self.arglist.record)
-            self.game.on_init()
-            if self.arglist.record:
-                self.game.save_image_obs(self.t)
+        # if self.arglist.record or self.arglist.with_image_obs:
+        #     self.game = GameImage(
+        #             filename=self.filename,
+        #             world=self.world,
+        #             sim_agents=self.sim_agents,
+        #             record=self.arglist.record)
+        #     self.game.on_init()
+        #     if self.arglist.record:
+        #         self.game.save_image_obs(self.t)
+        self.display()
 
-        return copy.copy(self)
+        np_obs = self.get_current_obs()
+        
+        info = {"t": self.t,
+                "env_new": copy.copy(self),
+                "termination_info": self.termination_info}
+
+        return np_obs, info
 
     def close(self):
         return
@@ -184,9 +247,9 @@ class OvercookedEnvironment(gym.Env):
     def step(self, action_dict):
         # Track internal environment info.
         self.t += 1
-        print("===============================")
-        print("[environment.step] @ TIMESTEP {}".format(self.t))
-        print("===============================")
+        # print("===============================")
+        # print("[environment.step] @ TIMESTEP {}".format(self.t))
+        # print("===============================")
 
         # Get actions.
         for sim_agent in self.sim_agents:
@@ -201,21 +264,24 @@ class OvercookedEnvironment(gym.Env):
 
         # Visualize.
         self.display()
-        self.print_agents()
-        if self.arglist.record:
-            self.game.save_image_obs(self.t)
+        # self.print_agents()
+        # if self.arglist.record:
+        #     self.game.save_image_obs(self.t)
 
         # Get a plan-representation observation.
         new_obs = copy.copy(self)
         # # Get an image observation
         # image_obs = self.game.get_image_obs()
 
+        np_obs = self.get_current_obs()
+
         done = self.done()
         reward = self.reward()
-        info = {"t": self.t, "obs": new_obs,
+        info = {"t": self.t,
+                "env_new": new_obs,
                 # "image_obs": image_obs,
-                "done": done, "termination_info": self.termination_info}
-        return new_obs, reward, done, info
+                "termination_info": self.termination_info}
+        return np_obs, reward, done, info
 
 
     def done(self):
@@ -268,9 +334,9 @@ class OvercookedEnvironment(gym.Env):
 
     def run_recipes(self):
         """Returns different permutations of completing recipes."""
-        self.sw = STRIPSWorld(world=self.world, recipes=self.recipes)
+        sw = STRIPSWorld(world=self.world, recipes=self.recipes)
         # [path for recipe 1, path for recipe 2, ...] where each path is a list of actions
-        subtasks = self.sw.get_subtasks(max_path_length=self.arglist.max_num_subtasks)
+        subtasks = sw.get_subtasks(max_path_length=self.arglist.max_num_subtasks)
         all_subtasks = [subtask for path in subtasks for subtask in path]
         print('Subtasks:', all_subtasks, '\n')
         return all_subtasks
@@ -421,13 +487,13 @@ class OvercookedEnvironment(gym.Env):
                         agent_locations=[agent_i.location, agent_j.location])
                 self.collisions.append(collision)
 
-        print('\nexecute array is:', execute)
+        # print('\nexecute array is:', execute)
 
         # Update agents' actions if collision was detected.
         for i, agent in enumerate(self.sim_agents):
             if not execute[i]:
                 agent.action = (0, 0)
-            print("{} has action {}".format(color(agent.name, agent.color), agent.action))
+            # print("{} has action {}".format(color(agent.name, agent.color), agent.action))
 
     def execute_navigation(self):
         for agent in self.sim_agents:
@@ -439,7 +505,7 @@ def get_arglist():
     arglist = SimpleNamespace()
 
     # environment
-    arglist.level = "full-divider_salad"
+    arglist.level = "open-divider_tl"
     arglist.num_agents = 2
     arglist.max_num_timesteps = 100
     arglist.max_num_subtasks = 14
@@ -506,6 +572,14 @@ if __name__ == "__main__":
         
         action_dict = {agent_names[0]: action1, agent_names[1]: action2}
         obs, reward, done, info = env.step(action_dict)
+        a1_holding = env.sim_agents[0].holding
+        a2_holding = env.sim_agents[1].holding
+        print('-------------------------')
+        print(a1_holding.full_name if a1_holding is not None else None)
+        print(a2_holding.full_name if a2_holding is not None else None)
+        if done:
+            break
+
         
 
 

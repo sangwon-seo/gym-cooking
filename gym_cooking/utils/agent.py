@@ -98,9 +98,9 @@ class RealAgent:
 
     def get_subtasks(self, world):
         """Return different subtask permutations for recipes."""
-        self.sw = STRIPSWorld(world, self.recipes)
+        sw = STRIPSWorld(world, self.recipes)
         # [path for recipe 1, path for recipe 2, ...] where each path is a list of actions.
-        subtasks = self.sw.get_subtasks(max_path_length=self.arglist.max_num_subtasks)
+        subtasks = sw.get_subtasks(max_path_length=self.arglist.max_num_subtasks)
         all_subtasks = [subtask for path in subtasks for subtask in path]
 
         # Uncomment below to view graph for recipe path i
@@ -112,9 +112,11 @@ class RealAgent:
     def setup_subtasks(self, env):
         """Initializing subtasks and subtask allocator, Bayesian Delegation."""
         self.incomplete_subtasks = self.get_subtasks(world=env.world)
+        agent_names = [agent.name for agent in env.sim_agents]
+
         self.delegator = BayesianDelegator(
                 agent_name=self.name,
-                all_agent_names=env.get_agent_names(),
+                all_agent_names=agent_names,
                 model_type=self.model_type,
                 planner=self.planner,
                 none_action_prob=self.none_action_prob)
